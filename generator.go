@@ -10,34 +10,9 @@ import (
 	"text/template"
 )
 
-func Generate() {
+func Generate(p ProtocolSpec) {
 	log.Println("start generating ..")
-	spec := ProtocolSpec{
-		Package: "protocol",
-		Commands: []Command{
-			{
-				Name: "RegisterClient",
-				Fields: []Field{
-					{Name: "ClientAddr", Type: "string"},
-				},
-			},
-			{
-				Name: "ListenTopic",
-				Fields: []Field{
-					{Name: "Topic", Type: "string"},
-					{Name: "ClientAddr", Type: "string"},
-				},
-			},
-			{
-				Name: "SendMessage",
-				Fields: []Field{
-					{Name: "Topic", Type: "string"},
-					{Name: "ClientAddr", Type: "string"},
-					{Name: "Payload", Type: "[]byte"},
-				},
-			},
-		},
-	}
+	spec := p
 
 	funcMap := template.FuncMap{
 		"lower": func(s string) string {
