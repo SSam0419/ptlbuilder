@@ -1,0 +1,1 @@
+This project helps to generate the code for decoding and encoding custom tcp protocol
