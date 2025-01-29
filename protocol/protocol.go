@@ -20,13 +20,13 @@ type Message struct {
 }
 
 type RegisterClientMessage struct {
-	address string
-	content string
+	Address string
+	Content string
 }
 
 type SendMessageMessage struct {
-	address string
-	content string
+	Address string
+	Content string
 }
 
 func DecodeMessageFromConn(conn net.Conn) (*Message, error) {
@@ -66,74 +66,74 @@ func DecodeMessageFromConn(conn net.Conn) (*Message, error) {
 	switch msg.Command {
 
 	case RegisterClientCommand:
-		data := &RegisterClientMessage{}
+		msgData := &RegisterClientMessage{}
 
-		// Read address
-		if len(data.address) < currentPos+2 {
-			return nil, fmt.Errorf("message too short for address length")
+		// Read Address
+		if len(data) < currentPos+2 {
+			return nil, fmt.Errorf("message too short for Address length")
 		}
-		addressLen := binary.BigEndian.Uint16([]byte(data.address[currentPos:]))
+		AddressLen := binary.BigEndian.Uint16(data[currentPos:])
 		currentPos += 2
 
-		if len(data.address) < currentPos+int(addressLen) {
-			return nil, fmt.Errorf("message too short for address")
+		if len(data) < currentPos+int(AddressLen) {
+			return nil, fmt.Errorf("message too short for Address")
 		}
 
-		data.address = string(data.address[currentPos : currentPos+int(addressLen)])
+		msgData.Address = string(data[currentPos : currentPos+int(AddressLen)])
 
-		currentPos += int(addressLen)
+		currentPos += int(AddressLen)
 
-		// Read content
-		if len(data.content) < currentPos+2 {
-			return nil, fmt.Errorf("message too short for content length")
+		// Read Content
+		if len(data) < currentPos+2 {
+			return nil, fmt.Errorf("message too short for Content length")
 		}
-		contentLen := binary.BigEndian.Uint16([]byte(data.content[currentPos:]))
+		ContentLen := binary.BigEndian.Uint16(data[currentPos:])
 		currentPos += 2
 
-		if len(data.content) < currentPos+int(contentLen) {
-			return nil, fmt.Errorf("message too short for content")
+		if len(data) < currentPos+int(ContentLen) {
+			return nil, fmt.Errorf("message too short for Content")
 		}
 
-		data.content = string(data.content[currentPos : currentPos+int(contentLen)])
+		msgData.Content = string(data[currentPos : currentPos+int(ContentLen)])
 
-		currentPos += int(contentLen)
+		currentPos += int(ContentLen)
 
-		msg.Data = data
+		msg.Data = msgData
 
 	case SendMessageCommand:
-		data := &SendMessageMessage{}
+		msgData := &SendMessageMessage{}
 
-		// Read address
-		if len(data.address) < currentPos+2 {
-			return nil, fmt.Errorf("message too short for address length")
+		// Read Address
+		if len(data) < currentPos+2 {
+			return nil, fmt.Errorf("message too short for Address length")
 		}
-		addressLen := binary.BigEndian.Uint16([]byte(data.address[currentPos:]))
+		AddressLen := binary.BigEndian.Uint16(data[currentPos:])
 		currentPos += 2
 
-		if len(data.address) < currentPos+int(addressLen) {
-			return nil, fmt.Errorf("message too short for address")
+		if len(data) < currentPos+int(AddressLen) {
+			return nil, fmt.Errorf("message too short for Address")
 		}
 
-		data.address = string(data.address[currentPos : currentPos+int(addressLen)])
+		msgData.Address = string(data[currentPos : currentPos+int(AddressLen)])
 
-		currentPos += int(addressLen)
+		currentPos += int(AddressLen)
 
-		// Read content
-		if len(data.content) < currentPos+2 {
-			return nil, fmt.Errorf("message too short for content length")
+		// Read Content
+		if len(data) < currentPos+2 {
+			return nil, fmt.Errorf("message too short for Content length")
 		}
-		contentLen := binary.BigEndian.Uint16([]byte(data.content[currentPos:]))
+		ContentLen := binary.BigEndian.Uint16(data[currentPos:])
 		currentPos += 2
 
-		if len(data.content) < currentPos+int(contentLen) {
-			return nil, fmt.Errorf("message too short for content")
+		if len(data) < currentPos+int(ContentLen) {
+			return nil, fmt.Errorf("message too short for Content")
 		}
 
-		data.content = string(data.content[currentPos : currentPos+int(contentLen)])
+		msgData.Content = string(data[currentPos : currentPos+int(ContentLen)])
 
-		currentPos += int(contentLen)
+		currentPos += int(ContentLen)
 
-		msg.Data = data
+		msg.Data = msgData
 
 	default:
 		return nil, fmt.Errorf("unknown command: %s", msg.Command)
@@ -159,13 +159,13 @@ func EncodeRegisterClientRequest(address string, content string) ([]byte, error)
 	copy(buf[currentPos:], cmd)
 	currentPos += len(cmd)
 
-	// Write address
+	// Write Address
 	binary.BigEndian.PutUint16(buf[currentPos:], uint16(len(address)))
 	currentPos += 2
 	copy(buf[currentPos:], address)
 	currentPos += len(address)
 
-	// Write content
+	// Write Content
 	binary.BigEndian.PutUint16(buf[currentPos:], uint16(len(content)))
 	currentPos += 2
 	copy(buf[currentPos:], content)
@@ -191,17 +191,43 @@ func EncodeSendMessageRequest(address string, content string) ([]byte, error) {
 	copy(buf[currentPos:], cmd)
 	currentPos += len(cmd)
 
-	// Write address
+	// Write Address
 	binary.BigEndian.PutUint16(buf[currentPos:], uint16(len(address)))
 	currentPos += 2
 	copy(buf[currentPos:], address)
 	currentPos += len(address)
 
-	// Write content
+	// Write Content
 	binary.BigEndian.PutUint16(buf[currentPos:], uint16(len(content)))
 	currentPos += 2
 	copy(buf[currentPos:], content)
 	currentPos += len(content)
 
 	return buf, nil
+}
+
+func (m *Message) AsRegisterClient() (*RegisterClientMessage, error) {
+	if m.Command != RegisterClientCommand {
+		return nil, fmt.Errorf("invalid command type: expected %s, got %s", RegisterClientCommand, m.Command)
+	}
+
+	data, ok := m.Data.(*RegisterClientMessage)
+	if !ok {
+		return nil, fmt.Errorf("invalid data type for RegisterClientMessage")
+	}
+
+	return data, nil
+}
+
+func (m *Message) AsSendMessage() (*SendMessageMessage, error) {
+	if m.Command != SendMessageCommand {
+		return nil, fmt.Errorf("invalid command type: expected %s, got %s", SendMessageCommand, m.Command)
+	}
+
+	data, ok := m.Data.(*SendMessageMessage)
+	if !ok {
+		return nil, fmt.Errorf("invalid data type for SendMessageMessage")
+	}
+
+	return data, nil
 }

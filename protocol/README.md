@@ -18,14 +18,14 @@ Each message follows this general structure:
 ```
 [Total Length: 4 bytes]
 [Command Length: 2 bytes]["RegisterClient"]
-[Field 1 Length: 4 bytes][address (string)]
-[Field 2 Length: 4 bytes][content (string)]
+[Field 1 Length: 4 bytes][Address (string)]
+[Field 2 Length: 4 bytes][Content (string)]
 ```
 
 **Fields:**
-1. **address**
+1. **Address**
    * Type: string
-2. **content**
+2. **Content**
    * Type: string
 
 
@@ -35,14 +35,14 @@ Each message follows this general structure:
 ```
 [Total Length: 4 bytes]
 [Command Length: 2 bytes]["SendMessage"]
-[Field 1 Length: 4 bytes][address (string)]
-[Field 2 Length: 4 bytes][content (string)]
+[Field 1 Length: 4 bytes][Address (string)]
+[Field 2 Length: 4 bytes][Content (string)]
 ```
 
 **Fields:**
-1. **address**
+1. **Address**
    * Type: string
-2. **content**
+2. **Content**
    * Type: string
 
 

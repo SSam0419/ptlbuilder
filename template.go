@@ -68,26 +68,26 @@ func DecodeMessageFromConn(conn net.Conn) (*Message, error) {
     switch msg.Command {
     {{range .Commands}}
     case {{.Name}}Command:
-        data := &{{.Name}}Message{}
+        msgData := &{{.Name}}Message{}
         {{range .Fields}}
         // Read {{.Name}}
-        if len(data.{{.Name}}) < currentPos+2 {
+        if len(data) < currentPos+2 {
             return nil, fmt.Errorf("message too short for {{.Name}} length")
         }
-        {{.Name}}Len := binary.BigEndian.Uint16([]byte(data.{{.Name}}[currentPos:]))
+        {{.Name}}Len := binary.BigEndian.Uint16(data[currentPos:])
         currentPos += 2
 
-        if len(data.{{.Name}}) < currentPos+int({{.Name}}Len) {
+        if len(data) < currentPos+int({{.Name}}Len) {
             return nil, fmt.Errorf("message too short for {{.Name}}")
         }
         {{if eq .Type "[]byte"}}
-        data.{{.Name}} = data.{{.Name}}[currentPos : currentPos+int({{.Name}}Len)]
+        msgData.{{.Name}} = data[currentPos : currentPos+int({{.Name}}Len)]
         {{else}}
-        data.{{.Name}} = string(data.{{.Name}}[currentPos : currentPos+int({{.Name}}Len)])
+        msgData.{{.Name}} = string(data[currentPos : currentPos+int({{.Name}}Len)])
         {{end}}
         currentPos += int({{.Name}}Len)
         {{end}}
-        msg.Data = data
+        msg.Data = msgData
     {{end}}
     default:
         return nil, fmt.Errorf("unknown command: %s", msg.Command)
@@ -123,6 +123,21 @@ func Encode{{.Name}}Request({{range $i, $f := .Fields}}{{if $i}}, {{end}}{{lower
     {{end}}
 
     return buf, nil
+}
+{{end}}
+
+{{range .Commands}}
+func (m *Message) As{{.Name}}() (*{{.Name}}Message, error) {
+    if m.Command != {{.Name}}Command {
+        return nil, fmt.Errorf("invalid command type: expected %s, got %s", {{.Name}}Command, m.Command)
+    }
+
+    data, ok := m.Data.(*{{.Name}}Message)
+    if !ok {
+        return nil, fmt.Errorf("invalid data type for {{.Name}}Message")
+    }
+
+    return data, nil
 }
 {{end}}
 `
