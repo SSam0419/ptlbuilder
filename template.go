@@ -32,16 +32,18 @@ type {{.Name}}Message struct {
 {{end}}
 
 func DecodeMessageFromConn(conn net.Conn) (*Message, error) {
-    if err := conn.SetReadDeadline(time.Now().Add(5 * time.Second)); err != nil {
+    if err := conn.SetReadDeadline(time.Now().Add(time.Duration({{.Timeout}}) * time.Second)); err != nil {
         return nil, fmt.Errorf("setting read deadline: %w", err)
     }
 
+    // read total length of the message first
     totalLenBuf := make([]byte, 2)
     if _, err := io.ReadFull(conn, totalLenBuf); err != nil {
         return nil, fmt.Errorf("reading total length: %w", err)
     }
     totalLen := binary.BigEndian.Uint16(totalLenBuf)
 
+    // make the buffer for storing the whole message
     data := make([]byte, totalLen)
     if _, err := io.ReadFull(conn, data); err != nil {
         return nil, fmt.Errorf("reading message data: %w", err)
@@ -63,7 +65,7 @@ func DecodeMessageFromConn(conn net.Conn) (*Message, error) {
     msg.Command = string(data[currentPos : currentPos+int(cmdLen)])
     currentPos += int(cmdLen)
 
-        switch msg.Command {
+    switch msg.Command {
     {{range .Commands}}
     case {{.Name}}Command:
         data := &{{.Name}}Message{}
@@ -123,4 +125,43 @@ func Encode{{.Name}}Request({{range $i, $f := .Fields}}{{if $i}}, {{end}}{{lower
     return buf, nil
 }
 {{end}}
+`
+
+const documentTemplate = `# Protocol Documentation
+
+## Message Format
+Each message follows this general structure:
+* Total packet length (4 bytes)
+* Command name length (2 bytes)
+* Command name string
+* Sequence of fields, each containing:
+  * Field length (4 bytes)
+  * Field data
+
+## Commands
+
+{{range $command := .Commands}}
+### {{$command.Name}}
+
+**Command Structure:**
+{{char}}
+[Total Length: 4 bytes]
+[Command Length: 2 bytes]["{{$command.Name}}"]
+{{- range $index, $field := $command.Fields}}
+[Field {{inc $index}} Length: 4 bytes][{{$field.Name}} ({{$field.Type}})]
+{{- end}}
+{{char}}
+
+**Fields:**
+{{- range $index, $field := $command.Fields}}
+{{inc $index}}. **{{$field.Name}}**
+   * Type: {{$field.Type}}
+{{- end}}
+
+{{end}}
+
+## Notes
+* All integer values are in network byte order (big-endian)
+* String fields are UTF-8 encoded
+* Timeout for message decoding: {{.Timeout}} seconds
 `
